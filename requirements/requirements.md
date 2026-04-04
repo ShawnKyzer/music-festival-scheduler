@@ -14,6 +14,8 @@
 10. The app uses a dark theme with purple accent colors.
 11. Each show card includes a "Listen on YouTube Music" button that opens the artist in YouTube Music on the user's phone.
 
+12. The app includes a Map tab showing the official Mad Cool festival map so users can navigate the venue without needing internet.
+
 ## Future Features
 
 <!-- Add new feature requests below this line -->
