@@ -25,6 +25,11 @@
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "scheme": "music-festival-scheduler",
+    "plugins": [
+      "expo-router",
+      "expo-sqlite"
+    ]
   }
 }
