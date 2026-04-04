@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, Pressable } from 'react-native';
+import { View, Text, StyleSheet, Pressable, Linking } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../constants/theme';
 import type { Show } from '../types';
@@ -13,6 +13,11 @@ interface ShowCardProps {
 function formatTime(isoString: string): string {
   const date = new Date(isoString);
   return date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+}
+
+function openYouTubeMusic(artist: string) {
+  const query = encodeURIComponent(artist);
+  Linking.openURL(`https://music.youtube.com/search?q=${query}`);
 }
 
 export function ShowCard({ show, isScheduled, onToggle }: ShowCardProps) {
@@ -32,6 +37,14 @@ export function ShowCard({ show, isScheduled, onToggle }: ShowCardProps) {
           <Ionicons name="location-outline" size={14} color={Colors.textSecondary} />
           <Text style={styles.venue}>{show.stageName} - {show.stageLocation}</Text>
         </View>
+        <Pressable
+          style={styles.ytMusicButton}
+          onPress={() => openYouTubeMusic(show.artist)}
+          hitSlop={4}
+        >
+          <Ionicons name="musical-note" size={14} color={Colors.accent} />
+          <Text style={styles.ytMusicText}>Listen on YouTube Music</Text>
+        </Pressable>
       </View>
       <Pressable
         style={[styles.toggleButton, isScheduled && styles.toggleButtonActive]}
@@ -97,6 +110,17 @@ const styles = StyleSheet.create({
   venue: {
     color: Colors.textSecondary,
     fontSize: 12,
+  },
+  ytMusicButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginTop: 6,
+  },
+  ytMusicText: {
+    color: Colors.accent,
+    fontSize: 12,
+    fontWeight: '600',
   },
   toggleButton: {
     padding: 4,

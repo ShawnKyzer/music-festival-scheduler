@@ -12,6 +12,7 @@
 8. The app includes 5 real festival stages: Region of Madrid, Orange, The Loop Iberdrola, Mahou Cinco Estrellas, and Mahou Reserva.
 9. The database is seeded with 72 shows across 4 days with exact set times from the official Mad Cool schedule.
 10. The app uses a dark theme with purple accent colors.
+11. Each show card includes a "Listen on YouTube Music" button that opens the artist in YouTube Music on the user's phone.
 
 ## Future Features
 

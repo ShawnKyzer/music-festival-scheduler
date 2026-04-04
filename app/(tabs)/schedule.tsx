@@ -6,6 +6,7 @@ import {
   StyleSheet,
   ActivityIndicator,
   Pressable,
+  Linking,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from 'expo-router';
@@ -21,6 +22,11 @@ interface Section {
 function formatTime(isoString: string): string {
   const date = new Date(isoString);
   return date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+}
+
+function openYouTubeMusic(artist: string) {
+  const query = encodeURIComponent(artist);
+  Linking.openURL(`https://music.youtube.com/search?q=${query}`);
 }
 
 function formatSectionTitle(dateStr: string): string {
@@ -100,6 +106,14 @@ export default function ScheduleScreen() {
                   {item.stageName} - {item.stageLocation}
                 </Text>
               </View>
+              <Pressable
+                style={styles.ytMusicButton}
+                onPress={() => openYouTubeMusic(item.artist)}
+                hitSlop={4}
+              >
+                <Ionicons name="musical-note" size={14} color={Colors.accent} />
+                <Text style={styles.ytMusicText}>Listen on YouTube Music</Text>
+              </Pressable>
             </View>
             <Pressable
               style={styles.removeButton}
@@ -189,6 +203,17 @@ const styles = StyleSheet.create({
   venue: {
     color: Colors.textSecondary,
     fontSize: 12,
+  },
+  ytMusicButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginTop: 6,
+  },
+  ytMusicText: {
+    color: Colors.accent,
+    fontSize: 12,
+    fontWeight: '600',
   },
   removeButton: {
     padding: 4,
