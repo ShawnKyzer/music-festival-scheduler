@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, Pressable, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { Colors } from '../constants/theme';
 
 interface DaySelectorProps {
@@ -17,49 +17,57 @@ function formatDayLabel(dateStr: string): string {
 
 export function DaySelector({ days, selectedDay, onSelect }: DaySelectorProps) {
   return (
-    <ScrollView
-      horizontal
-      showsHorizontalScrollIndicator={false}
-      contentContainerStyle={styles.container}
-    >
+    <View style={styles.container}>
       {days.map((day) => (
         <Pressable
           key={day}
           style={[styles.pill, selectedDay === day && styles.pillActive]}
           onPress={() => onSelect(day)}
         >
-          <Text style={[styles.label, selectedDay === day && styles.labelActive]}>
-            {formatDayLabel(day)}
+          <Text style={[styles.dayName, selectedDay === day && styles.labelActive]}>
+            {formatDayLabel(day).split('\n')[0]}
+          </Text>
+          <Text style={[styles.dayDate, selectedDay === day && styles.labelActive]}>
+            {formatDayLabel(day).split('\n')[1]}
           </Text>
         </Pressable>
       ))}
-    </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    paddingHorizontal: 16,
+    flexDirection: 'row',
+    paddingHorizontal: 12,
     paddingVertical: 12,
-    gap: 10,
+    gap: 8,
   },
   pill: {
-    paddingHorizontal: 20,
+    flex: 1,
     paddingVertical: 10,
-    borderRadius: 20,
+    borderRadius: 12,
     backgroundColor: Colors.surface,
     borderWidth: 1,
     borderColor: Colors.border,
+    alignItems: 'center',
   },
   pillActive: {
     backgroundColor: Colors.primary,
     borderColor: Colors.primary,
   },
-  label: {
+  dayName: {
     color: Colors.textSecondary,
     fontSize: 13,
+    fontWeight: '700',
+    textAlign: 'center',
+  },
+  dayDate: {
+    color: Colors.textSecondary,
+    fontSize: 11,
     fontWeight: '600',
     textAlign: 'center',
+    marginTop: 2,
   },
   labelActive: {
     color: Colors.text,
