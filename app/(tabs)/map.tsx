@@ -1,11 +1,6 @@
 import React from 'react';
-import {
-  View,
-  Image,
-  StyleSheet,
-  useWindowDimensions,
-  ScrollView,
-} from 'react-native';
+import { View, Image, StyleSheet, useWindowDimensions } from 'react-native';
+import { ReactNativeZoomableView } from '@openspacelabs/react-native-zoomable-view';
 import { Colors } from '../../src/constants/theme';
 
 const mapImage = require('../../assets/festival-map.jpg');
@@ -14,27 +9,24 @@ const MAP_ASPECT_RATIO = 1800 / 2670;
 
 export default function MapScreen() {
   const { width: screenWidth } = useWindowDimensions();
-  const mapWidth = screenWidth * 2.5;
+  const mapWidth = screenWidth;
   const mapHeight = mapWidth / MAP_ASPECT_RATIO;
 
   return (
     <View style={styles.container}>
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.outer}
+      <ReactNativeZoomableView
+        maxZoom={5}
+        minZoom={1}
+        initialZoom={1}
+        bindToBorders
+        style={styles.zoomView}
       >
-        <ScrollView
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={styles.inner}
-        >
-          <Image
-            source={mapImage}
-            style={{ width: mapWidth, height: mapHeight }}
-            resizeMode="contain"
-          />
-        </ScrollView>
-      </ScrollView>
+        <Image
+          source={mapImage}
+          style={{ width: mapWidth, height: mapHeight }}
+          resizeMode="contain"
+        />
+      </ReactNativeZoomableView>
     </View>
   );
 }
@@ -44,10 +36,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.background,
   },
-  outer: {
-    flexGrow: 1,
-  },
-  inner: {
-    flexGrow: 1,
+  zoomView: {
+    flex: 1,
   },
 });
