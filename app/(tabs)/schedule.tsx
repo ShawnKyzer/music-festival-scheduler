@@ -1,7 +1,6 @@
 import React, { useCallback, useMemo, useState } from 'react';
 import {
   View,
-  ScrollView,
   SectionList,
   Text,
   StyleSheet,
@@ -142,11 +141,7 @@ export default function ScheduleScreen() {
     <View style={styles.container}>
       {/* Day selector — visible only when schedule has shows across multiple days */}
       {hasShows && scheduleDays.length > 1 && (
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.daySelector}
-        >
+        <View style={styles.daySelector}>
           <Pressable
             style={[styles.dayPill, selectedDay === ALL_DAYS && styles.dayPillActive]}
             onPress={() => setSelectedDay(ALL_DAYS)}
@@ -173,7 +168,7 @@ export default function ScheduleScreen() {
               </Pressable>
             );
           })}
-        </ScrollView>
+        </View>
       )}
 
       {/* Share button — visible only when filtered schedule has shows */}
@@ -404,14 +399,14 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   dayPill: {
-    paddingVertical: 8,
-    paddingHorizontal: 16,
+    flex: 1,
     borderRadius: 12,
     backgroundColor: Colors.surface,
     borderWidth: 1,
     borderColor: Colors.border,
     alignItems: 'center',
-    minWidth: 60,
+    justifyContent: 'center',
+    height: 48,
   },
   dayPillActive: {
     backgroundColor: Colors.primary,
