@@ -13,7 +13,7 @@
 
 ## Requirement Completeness
 
-- [ ] No [NEEDS CLARIFICATION] markers remain — **1 remains (FR-009: image aspect ratio)**
+- [x] No [NEEDS CLARIFICATION] markers remain — resolved in research.md R3: portrait 1080px wide, dynamic height
 - [x] Requirements are testable and unambiguous
 - [x] Success criteria are measurable
 - [x] Success criteria are technology-agnostic (no implementation details)
@@ -28,7 +28,7 @@
 - [x] User stories are prioritized (P1, P2, P3)
 - [x] Each user story is independently testable
 - [x] MVP can be delivered with P1 story alone
-- [ ] All NEEDS CLARIFICATION items resolved — **1 open**
+- [x] All NEEDS CLARIFICATION items resolved — FR-009 resolved in research.md R3
 
 ## Constitution Compliance
 
@@ -42,4 +42,4 @@
 
 | Item | Impact | Status |
 |------|--------|--------|
-| FR-009: Image aspect ratio (portrait 1080×1920 vs compact) | Medium — affects layout design | Default assumed: portrait (Instagram Stories) |
+| FR-009: Image aspect ratio (portrait 1080×1920 vs compact) | Medium — affects layout design | ✅ Resolved: portrait 1080px wide, dynamic height (research.md R3) |
