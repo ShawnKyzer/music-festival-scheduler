@@ -25,3 +25,10 @@ export interface ScheduleEntry {
   startTime: string;
   endTime: string;
 }
+
+export interface ShareHistory {
+  id: number;
+  dayFilter: string | null;  // null = all days
+  showCount: number;
+  sharedAt: string;           // ISO 8601
+}

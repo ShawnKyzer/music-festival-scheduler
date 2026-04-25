@@ -38,9 +38,17 @@ async function initializeSchema(database: SQLite.SQLiteDatabase): Promise<void> 
       FOREIGN KEY (show_id) REFERENCES shows(id)
     );
 
+    CREATE TABLE IF NOT EXISTS share_history (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      day_filter TEXT,
+      show_count INTEGER NOT NULL,
+      shared_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+
     CREATE INDEX IF NOT EXISTS idx_shows_start_time ON shows(start_time);
     CREATE INDEX IF NOT EXISTS idx_shows_stage_id ON shows(stage_id);
     CREATE INDEX IF NOT EXISTS idx_schedule_show_id ON schedule(show_id);
+    CREATE INDEX IF NOT EXISTS idx_share_history_shared_at ON share_history(shared_at);
   `);
 
   // Seed sample data if the database is empty
