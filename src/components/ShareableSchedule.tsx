@@ -20,9 +20,13 @@ function formatTime(isoString: string): string {
 
 export const ShareableSchedule = forwardRef<View, ShareableScheduleProps>(
   function ShareableSchedule({ sections, dayFilter }, ref) {
-    const filtered = dayFilter
-      ? sections.filter((s) => s.title.includes(dayFilter))
-      : sections;
+    const dayLabel = dayFilter
+      ? new Date(dayFilter + 'T12:00:00').toLocaleDateString([], {
+          weekday: 'long',
+          month: 'long',
+          day: 'numeric',
+        })
+      : null;
 
     return (
       <View
@@ -34,15 +38,15 @@ export const ShareableSchedule = forwardRef<View, ShareableScheduleProps>(
         <View style={styles.header}>
           <Text style={styles.headerTitle}>MAD COOL 2026</Text>
           <Text style={styles.headerSubtitle}>July 8–11 · Madrid</Text>
-          {dayFilter && (
-            <Text style={styles.headerDay}>{dayFilter}</Text>
+          {dayLabel && (
+            <Text style={styles.headerDay}>{dayLabel}</Text>
           )}
           <View style={styles.headerDivider} />
           <Text style={styles.headerLabel}>MY SCHEDULE</Text>
         </View>
 
         {/* Schedule Content */}
-        {filtered.map((section) => (
+        {sections.map((section) => (
           <View key={section.title} style={styles.section}>
             <Text style={styles.sectionTitle}>{section.title}</Text>
             {section.data.map((item) => (
