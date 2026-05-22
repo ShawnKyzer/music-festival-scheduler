@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import {
   View,
   SectionList,
@@ -12,6 +12,9 @@ import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from 'expo-router';
 import { Colors } from '../../src/constants/theme';
 import { getSchedule, removeFromSchedule } from '../../src/db/queries';
+import { ShareableSchedule } from '../../src/components/ShareableSchedule';
+import { SharePreviewModal } from '../../src/components/SharePreviewModal';
+import { useShareSchedule } from '../../src/hooks/useShareSchedule';
 import type { ScheduleEntry } from '../../src/types';
 
 interface Section {
@@ -51,13 +54,58 @@ function groupByDay(entries: ScheduleEntry[]): Section[] {
   }));
 }
 
+const ALL_DAYS = 'all';
+
+function formatDayPill(dateStr: string): { short: string; date: string } {
+  const date = new Date(dateStr + 'T12:00:00');
+  return {
+    short: date.toLocaleDateString([], { weekday: 'short' }),
+    date: date.toLocaleDateString([], { month: 'short', day: 'numeric' }),
+  };
+}
+
 export default function ScheduleScreen() {
-  const [sections, setSections] = useState<Section[]>([]);
+  const [allSections, setAllSections] = useState<Section[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedDay, setSelectedDay] = useState<string>(ALL_DAYS);
+  const {
+    viewRef,
+    isCapturing,
+    isSending,
+    previewUri,
+    previewVisible,
+    capturePreview,
+    confirmShare,
+    cancelPreview,
+  } = useShareSchedule();
+
+  // Extract unique days from schedule
+  const scheduleDays = useMemo(() => {
+    const daySet = new Set<string>();
+    for (const section of allSections) {
+      for (const entry of section.data) {
+        daySet.add(entry.startTime.split('T')[0]);
+      }
+    }
+    return Array.from(daySet).sort();
+  }, [allSections]);
+
+  // Filter sections by selected day
+  const displaySections = useMemo(() => {
+    if (selectedDay === ALL_DAYS) return allSections;
+    return allSections.filter((s) =>
+      s.data.some((entry) => entry.startTime.split('T')[0] === selectedDay)
+    );
+  }, [allSections, selectedDay]);
+
+  const displayShowCount = displaySections.reduce((sum, s) => sum + s.data.length, 0);
+  const totalShowCount = allSections.reduce((sum, s) => sum + s.data.length, 0);
+  const hasShows = totalShowCount > 0;
+  const hasFilteredShows = displayShowCount > 0;
 
   const loadSchedule = useCallback(async () => {
     const entries = await getSchedule();
-    setSections(groupByDay(entries));
+    setAllSections(groupByDay(entries));
     setLoading(false);
   }, []);
 
@@ -75,6 +123,12 @@ export default function ScheduleScreen() {
     [loadSchedule]
   );
 
+  const dayFilter = selectedDay === ALL_DAYS ? null : selectedDay;
+
+  const handleShare = useCallback(async () => {
+    await capturePreview(dayFilter, displayShowCount);
+  }, [capturePreview, dayFilter, displayShowCount]);
+
   if (loading) {
     return (
       <View style={styles.center}>
@@ -85,8 +139,59 @@ export default function ScheduleScreen() {
 
   return (
     <View style={styles.container}>
+      {/* Day selector — visible only when schedule has shows across multiple days */}
+      {hasShows && scheduleDays.length > 1 && (
+        <View style={styles.daySelector}>
+          <Pressable
+            style={[styles.dayPill, selectedDay === ALL_DAYS && styles.dayPillActive]}
+            onPress={() => setSelectedDay(ALL_DAYS)}
+          >
+            <Text style={[styles.dayPillText, selectedDay === ALL_DAYS && styles.dayPillTextActive]}>
+              All
+            </Text>
+          </Pressable>
+          {scheduleDays.map((day) => {
+            const label = formatDayPill(day);
+            const isActive = selectedDay === day;
+            return (
+              <Pressable
+                key={day}
+                style={[styles.dayPill, isActive && styles.dayPillActive]}
+                onPress={() => setSelectedDay(day)}
+              >
+                <Text style={[styles.dayPillText, isActive && styles.dayPillTextActive]}>
+                  {label.short}
+                </Text>
+                <Text style={[styles.dayPillDate, isActive && styles.dayPillTextActive]}>
+                  {label.date}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </View>
+      )}
+
+      {/* Share button — visible only when filtered schedule has shows */}
+      {hasFilteredShows && (
+        <Pressable
+          style={[styles.shareButton, isCapturing && styles.shareButtonDisabled]}
+          onPress={handleShare}
+          disabled={isCapturing}
+          hitSlop={8}
+        >
+          {isCapturing ? (
+            <ActivityIndicator size="small" color={Colors.text} />
+          ) : (
+            <>
+              <Ionicons name="share-outline" size={20} color={Colors.text} />
+              <Text style={styles.shareButtonText}>Share</Text>
+            </>
+          )}
+        </Pressable>
+      )}
+
       <SectionList
-        sections={sections}
+        sections={displaySections}
         keyExtractor={(item) => item.id.toString()}
         renderSectionHeader={({ section }) => (
           <Text style={styles.sectionHeader}>{section.title}</Text>
@@ -126,14 +231,40 @@ export default function ScheduleScreen() {
         )}
         contentContainerStyle={styles.list}
         ListEmptyComponent={
-          <View style={styles.emptyContainer}>
-            <Ionicons name="calendar-outline" size={64} color={Colors.textSecondary} />
-            <Text style={styles.emptyTitle}>No shows scheduled yet</Text>
-            <Text style={styles.emptySubtitle}>
-              Browse the lineup and tap + to add shows to your schedule.
-            </Text>
-          </View>
+          hasShows ? (
+            <View style={styles.emptyContainer}>
+              <Ionicons name="calendar-outline" size={48} color={Colors.textSecondary} />
+              <Text style={styles.emptyTitle}>No shows on this day</Text>
+              <Text style={styles.emptySubtitle}>
+                Select a different day or tap "All" to see your full schedule.
+              </Text>
+            </View>
+          ) : (
+            <View style={styles.emptyContainer}>
+              <Ionicons name="calendar-outline" size={64} color={Colors.textSecondary} />
+              <Text style={styles.emptyTitle}>No shows scheduled yet</Text>
+              <Text style={styles.emptySubtitle}>
+                Browse the lineup and tap + to add shows to your schedule.
+              </Text>
+            </View>
+          )
         }
+      />
+
+      {/* Off-screen shareable view for image capture */}
+      {hasFilteredShows && (
+        <View style={styles.offScreen} pointerEvents="none">
+          <ShareableSchedule ref={viewRef} sections={displaySections} dayFilter={dayFilter} />
+        </View>
+      )}
+
+      {/* Preview modal */}
+      <SharePreviewModal
+        visible={previewVisible}
+        imageUri={previewUri}
+        isSharing={isSending}
+        onShare={confirmShare}
+        onCancel={cancelPreview}
       />
     </View>
   );
@@ -234,5 +365,67 @@ const styles = StyleSheet.create({
     fontSize: 14,
     textAlign: 'center',
     marginTop: 8,
+  },
+  shareButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-end',
+    gap: 6,
+    backgroundColor: Colors.primary,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    marginHorizontal: 16,
+    marginTop: 12,
+    marginBottom: 4,
+  },
+  shareButtonDisabled: {
+    opacity: 0.5,
+  },
+  shareButtonText: {
+    color: Colors.text,
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  offScreen: {
+    position: 'absolute',
+    left: -9999,
+    top: 0,
+  },
+  daySelector: {
+    flexDirection: 'row',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    gap: 8,
+  },
+  dayPill: {
+    flex: 1,
+    borderRadius: 12,
+    backgroundColor: Colors.surface,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+    height: 48,
+  },
+  dayPillActive: {
+    backgroundColor: Colors.primary,
+    borderColor: Colors.primary,
+  },
+  dayPillText: {
+    color: Colors.textSecondary,
+    fontSize: 13,
+    fontWeight: '700',
+    textAlign: 'center',
+  },
+  dayPillDate: {
+    color: Colors.textSecondary,
+    fontSize: 11,
+    fontWeight: '600',
+    textAlign: 'center',
+    marginTop: 2,
+  },
+  dayPillTextActive: {
+    color: Colors.text,
   },
 });

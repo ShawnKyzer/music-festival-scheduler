@@ -1,5 +1,5 @@
 import { getDatabase } from './database';
-import type { Show, ScheduleEntry, Stage } from '../types';
+import type { Show, ScheduleEntry, Stage, ShareHistory } from '../types';
 
 export async function getAllStages(): Promise<Stage[]> {
   const db = await getDatabase();
@@ -99,4 +99,36 @@ export async function getScheduledShowIds(): Promise<Set<number>> {
     'SELECT show_id FROM schedule'
   );
   return new Set(rows.map((r) => r.show_id));
+}
+
+export async function addShareHistory(
+  dayFilter: string | null,
+  showCount: number
+): Promise<void> {
+  const db = await getDatabase();
+  await db.runAsync(
+    'INSERT INTO share_history (day_filter, show_count) VALUES (?, ?)',
+    [dayFilter, showCount]
+  );
+}
+
+export async function getShareHistory(): Promise<ShareHistory[]> {
+  const db = await getDatabase();
+  return db.getAllAsync<ShareHistory>(`
+    SELECT
+      id,
+      day_filter as dayFilter,
+      show_count as showCount,
+      shared_at as sharedAt
+    FROM share_history
+    ORDER BY shared_at DESC
+  `);
+}
+
+export async function getShareCount(): Promise<number> {
+  const db = await getDatabase();
+  const result = await db.getFirstAsync<{ count: number }>(
+    'SELECT COUNT(*) as count FROM share_history'
+  );
+  return result?.count ?? 0;
 }
