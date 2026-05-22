@@ -5,6 +5,9 @@ on:
     branches: [main]
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   build:
     name: Build Android APK
@@ -56,10 +59,27 @@ jobs:
         id: vars
         run: echo "sha_short=$(git rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
 
+      - name: Rename APK
+        run: |
+          mkdir -p dist
+          cp android/app/build/outputs/apk/release/app-release.apk \
+             "dist/music-festival-scheduler-${{ steps.vars.outputs.sha_short }}.apk"
+
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
           name: app-release-${{ steps.vars.outputs.sha_short }}
-          path: android/app/build/outputs/apk/release/*.apk
+          path: dist/*.apk
           if-no-files-found: error
           retention-days: 30
+
+      - name: Create GitHub Release
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: build-${{ github.run_number }}-${{ steps.vars.outputs.sha_short }}
+          name: Build ${{ github.run_number }} (${{ steps.vars.outputs.sha_short }})
+          body: |
+            Automated APK build from commit ${{ github.sha }}.
+          files: dist/*.apk
+          generate_release_notes: true
