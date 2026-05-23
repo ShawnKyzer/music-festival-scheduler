@@ -32,3 +32,34 @@ export interface ShareHistory {
   showCount: number;
   sharedAt: string;           // ISO 8601
 }
+
+// --- In-app update types ---
+
+export type UpdateStatus = 'up_to_date' | 'update_available' | 'error';
+
+export interface GitHubReleaseAsset {
+  name: string;
+  browser_download_url: string;
+  size: number;
+  content_type: string;
+}
+
+export interface GitHubRelease {
+  tag_name: string;
+  name: string;
+  published_at: string;
+  assets: GitHubReleaseAsset[];
+}
+
+export interface UpdateCheckResult {
+  status: UpdateStatus;
+  latestVersion: string | null;
+  downloadUrl: string | null;
+  error: string | null;
+}
+
+export interface DownloadProgress {
+  totalBytes: number;
+  downloadedBytes: number;
+  fraction: number;
+}
