@@ -55,31 +55,47 @@ jobs:
         working-directory: android
         run: ./gradlew assembleRelease --no-daemon
 
-      - name: Get short SHA
+      - name: Read app version
         id: vars
-        run: echo "sha_short=$(git rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
+        run: |
+          version=$(node -p "require('./app.json').expo.version")
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "sha_short=$(git rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
+
+      - name: Check if release tag already exists
+        id: tag_check
+        run: |
+          tag="v${{ steps.vars.outputs.version }}"
+          if gh release view "$tag" >/dev/null 2>&1; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+            echo "Tag $tag already exists. Will skip release publish."
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+        env:
+          GH_TOKEN: ${{ github.token }}
 
       - name: Rename APK
         run: |
           mkdir -p dist
           cp android/app/build/outputs/apk/release/app-release.apk \
-             "dist/music-festival-scheduler-${{ steps.vars.outputs.sha_short }}.apk"
+             "dist/music-festival-scheduler-v${{ steps.vars.outputs.version }}.apk"
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: app-release-${{ steps.vars.outputs.sha_short }}
+          name: app-release-v${{ steps.vars.outputs.version }}-${{ steps.vars.outputs.sha_short }}
           path: dist/*.apk
           if-no-files-found: error
           retention-days: 30
 
       - name: Create GitHub Release
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main' && steps.tag_check.outputs.exists == 'false'
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: build-${{ github.run_number }}-${{ steps.vars.outputs.sha_short }}
-          name: Build ${{ github.run_number }} (${{ steps.vars.outputs.sha_short }})
+          tag_name: v${{ steps.vars.outputs.version }}
+          name: v${{ steps.vars.outputs.version }}
           body: |
-            Automated APK build from commit ${{ github.sha }}.
+            Automated APK build for version ${{ steps.vars.outputs.version }} (commit ${{ github.sha }}).
           files: dist/*.apk
           generate_release_notes: true
