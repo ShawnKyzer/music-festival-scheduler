@@ -110,9 +110,12 @@ export function useAppUpdate(): UseAppUpdateReturn {
 
       setPhase('installing');
       const contentUri = await FileSystem.getContentUriAsync(result.uri);
-      await IntentLauncher.startActivityAsync('android.intent.action.INSTALL_PACKAGE', {
+      // ACTION_VIEW with the APK MIME type fires the OS package installer on Android 7+.
+      // Flags: FLAG_GRANT_READ_URI_PERMISSION (1) | FLAG_ACTIVITY_NEW_TASK (268435456)
+      await IntentLauncher.startActivityAsync('android.intent.action.VIEW', {
         data: contentUri,
-        flags: 1,
+        type: 'application/vnd.android.package-archive',
+        flags: 1 | 268435456,
       });
 
       reset();
