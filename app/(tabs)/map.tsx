@@ -5,7 +5,7 @@ import { Colors } from '../../src/constants/theme';
 
 const mapImage = require('../../assets/festival-map.jpg');
 
-const MAP_ASPECT_RATIO = 1800 / 2670;
+const MAP_ASPECT_RATIO = 2000 / 2500;
 
 export default function MapScreen() {
   const { width: screenWidth } = useWindowDimensions();
