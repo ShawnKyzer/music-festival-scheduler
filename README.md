@@ -4,7 +4,7 @@ A React Native mobile app for Mad Cool Festival 2026 (Madrid, July 8-11). Browse
 
 ## Features
 
-- **Browse Lineup** — View all 72 performances across 5 stages, organized by day.
+- **Browse Lineup** — View all 83 performances across 5 stages, organized by day.
 - **Build Your Schedule** — Tap to add or remove shows from your personal schedule.
 - **Day-by-Day Navigation** — Filter the lineup by festival day with a quick day selector.
 - **My Schedule View** — See all your selected shows grouped by day with stage/location info.
@@ -89,7 +89,7 @@ The APK will be at `android/app/build/outputs/apk/release/app-release.apk`. Tran
 
 ## Database
 
-The app uses **expo-sqlite** with WAL mode for performance. On first launch, the database is created and seeded with the official Mad Cool 2026 schedule (5 stages, 72 shows over 4 days). Set times were extracted from the official schedule at [madcoolfestival.es/horarios](https://madcoolfestival.es/horarios). The schema includes:
+The app uses **expo-sqlite** with WAL mode for performance. On first launch, the database is created and seeded with the official Mad Cool 2026 schedule (5 stages, 83 shows over 4 days). Existing installs are migrated in place (see `PRAGMA user_version` in `database.ts`) so schedule updates never wipe a user's saved shows. Set times were extracted from the official schedule at [madcoolfestival.es/horarios](https://madcoolfestival.es/horarios). The schema includes:
 
 - **stages** — Festival stage names and locations
 - **shows** — Artist performances with times and stage references
