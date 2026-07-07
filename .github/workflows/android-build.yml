@@ -68,7 +68,15 @@ jobs:
           tag="v${{ steps.vars.outputs.version }}"
           if gh release view "$tag" >/dev/null 2>&1; then
             echo "exists=true" >> "$GITHUB_OUTPUT"
-            echo "Tag $tag already exists. Will skip release publish."
+            echo "::warning title=Release skipped::Release $tag already exists, so no new release will be published. Bump \"version\" in app.json to publish one. The APK is available as a workflow artifact only."
+            {
+              echo "### ⚠️ No release published"
+              echo ""
+              echo "Release \`$tag\` already exists, so the release step was skipped."
+              echo "The APK is attached to this run as an **artifact** only."
+              echo ""
+              echo "To publish a release, bump \`version\` in \`app.json\` and push again."
+            } >> "$GITHUB_STEP_SUMMARY"
           else
             echo "exists=false" >> "$GITHUB_OUTPUT"
           fi
