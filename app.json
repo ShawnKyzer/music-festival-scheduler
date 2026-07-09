@@ -27,7 +27,9 @@
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
       "package": "com.anonymous.musicfestivalscheduler",
-      "permissions": ["REQUEST_INSTALL_PACKAGES"]
+      "permissions": [
+        "REQUEST_INSTALL_PACKAGES"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -39,6 +41,12 @@
     "plugins": [
       "expo-router",
       "expo-sqlite"
-    ]
+    ],
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "5c83c418-4a28-469b-ab6f-cc00df3cdf4f"
+      }
+    }
   }
 }
