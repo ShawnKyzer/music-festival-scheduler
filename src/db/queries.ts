@@ -44,6 +44,26 @@ export async function getShowsByDay(dateStr: string): Promise<Show[]> {
   );
 }
 
+export async function searchShows(query: string): Promise<Show[]> {
+  const db = await getDatabase();
+  return db.getAllAsync<Show>(
+    `SELECT
+      s.id,
+      s.artist,
+      s.description,
+      s.stage_id as stageId,
+      st.name as stageName,
+      st.location as stageLocation,
+      s.start_time as startTime,
+      s.end_time as endTime
+    FROM shows s
+    JOIN stages st ON s.stage_id = st.id
+    WHERE lower(s.artist) LIKE ?
+    ORDER BY s.start_time ASC`,
+    [`%${query.toLowerCase()}%`]
+  );
+}
+
 export async function getSchedule(): Promise<ScheduleEntry[]> {
   const db = await getDatabase();
   return db.getAllAsync<ScheduleEntry>(`

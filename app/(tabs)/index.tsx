@@ -1,11 +1,13 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { View, FlatList, Text, StyleSheet, ActivityIndicator } from 'react-native';
+import { View, FlatList, Text, TextInput, Pressable, StyleSheet, ActivityIndicator } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { ShowCard } from '../../src/components/ShowCard';
 import { DaySelector } from '../../src/components/DaySelector';
 import { Colors } from '../../src/constants/theme';
 import {
   getFestivalDays,
   getShowsByDay,
+  searchShows,
   getScheduledShowIds,
   addToSchedule,
   removeFromSchedule,
@@ -17,6 +19,7 @@ export default function LineupScreen() {
   const [selectedDay, setSelectedDay] = useState<string>('');
   const [shows, setShows] = useState<Show[]>([]);
   const [scheduledIds, setScheduledIds] = useState<Set<number>>(new Set());
+  const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -30,17 +33,20 @@ export default function LineupScreen() {
     })();
   }, []);
 
+  const normalizedQuery = searchQuery.trim().toLowerCase();
+  const isSearching = normalizedQuery.length > 0;
+
   useEffect(() => {
-    if (!selectedDay) return;
+    if (!selectedDay && !isSearching) return;
     (async () => {
-      const [dayShows, ids] = await Promise.all([
-        getShowsByDay(selectedDay),
+      const [loadedShows, ids] = await Promise.all([
+        isSearching ? searchShows(normalizedQuery) : getShowsByDay(selectedDay),
         getScheduledShowIds(),
       ]);
-      setShows(dayShows);
+      setShows(loadedShows);
       setScheduledIds(ids);
     })();
-  }, [selectedDay]);
+  }, [selectedDay, normalizedQuery, isSearching]);
 
   const handleToggle = useCallback(
     async (showId: number) => {
@@ -70,6 +76,24 @@ export default function LineupScreen() {
   return (
     <View style={styles.container}>
       <DaySelector days={days} selectedDay={selectedDay} onSelect={setSelectedDay} />
+      <View style={styles.searchContainer}>
+        <Ionicons name="search" size={18} color={Colors.textSecondary} style={styles.searchIcon} />
+        <TextInput
+          style={styles.searchInput}
+          placeholder="Search artists"
+          placeholderTextColor={Colors.textSecondary}
+          value={searchQuery}
+          onChangeText={setSearchQuery}
+          autoCapitalize="none"
+          autoCorrect={false}
+          clearButtonMode="while-editing"
+        />
+        {searchQuery.length > 0 && (
+          <Pressable onPress={() => setSearchQuery('')} hitSlop={8}>
+            <Ionicons name="close-circle" size={18} color={Colors.textSecondary} />
+          </Pressable>
+        )}
+      </View>
       <FlatList
         data={shows}
         keyExtractor={(item) => item.id.toString()}
@@ -82,7 +106,20 @@ export default function LineupScreen() {
         )}
         contentContainerStyle={styles.list}
         ListEmptyComponent={
-          <Text style={styles.emptyText}>No shows on this day.</Text>
+          isSearching ? (
+            <View style={styles.emptyContainer}>
+              <Ionicons name="search-outline" size={48} color={Colors.textSecondary} />
+              <Text style={styles.emptyTitle}>No matching artists</Text>
+              <Text style={styles.emptySubtitle}>
+                Try a different search term or clear the search.
+              </Text>
+              <Pressable style={styles.clearSearchButton} onPress={() => setSearchQuery('')}>
+                <Text style={styles.clearSearchButtonText}>Clear search</Text>
+              </Pressable>
+            </View>
+          ) : (
+            <Text style={styles.emptyText}>No shows on this day.</Text>
+          )
         }
       />
     </View>
@@ -109,5 +146,55 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 40,
     fontSize: 15,
+  },
+  searchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.surface,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    marginHorizontal: 16,
+    marginTop: 12,
+    paddingHorizontal: 12,
+    height: 44,
+  },
+  searchIcon: {
+    marginRight: 8,
+  },
+  searchInput: {
+    flex: 1,
+    color: Colors.text,
+    fontSize: 15,
+    height: '100%',
+  },
+  emptyContainer: {
+    alignItems: 'center',
+    marginTop: 60,
+    paddingHorizontal: 40,
+  },
+  emptyTitle: {
+    color: Colors.text,
+    fontSize: 18,
+    fontWeight: '700',
+    marginTop: 16,
+  },
+  emptySubtitle: {
+    color: Colors.textSecondary,
+    fontSize: 14,
+    textAlign: 'center',
+    marginTop: 8,
+  },
+  clearSearchButton: {
+    marginTop: 16,
+    backgroundColor: Colors.primary,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+  },
+  clearSearchButtonText: {
+    color: Colors.text,
+    fontSize: 14,
+    fontWeight: '600',
   },
 });
