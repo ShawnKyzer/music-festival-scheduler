@@ -12,6 +12,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from 'expo-router';
 import { Colors } from '../../src/constants/theme';
 import { getSchedule, removeFromSchedule } from '../../src/db/queries';
+import { festivalDay } from '../../src/utils/festivalDay';
 import { ShareableSchedule } from '../../src/components/ShareableSchedule';
 import { SharePreviewModal } from '../../src/components/SharePreviewModal';
 import { useShareSchedule } from '../../src/hooks/useShareSchedule';
@@ -44,7 +45,7 @@ function formatSectionTitle(dateStr: string): string {
 function groupByDay(entries: ScheduleEntry[]): Section[] {
   const map = new Map<string, ScheduleEntry[]>();
   for (const entry of entries) {
-    const day = entry.startTime.split('T')[0];
+    const day = festivalDay(entry.startTime);
     if (!map.has(day)) map.set(day, []);
     map.get(day)!.push(entry);
   }
@@ -84,7 +85,7 @@ export default function ScheduleScreen() {
     const daySet = new Set<string>();
     for (const section of allSections) {
       for (const entry of section.data) {
-        daySet.add(entry.startTime.split('T')[0]);
+        daySet.add(festivalDay(entry.startTime));
       }
     }
     return Array.from(daySet).sort();
@@ -94,7 +95,7 @@ export default function ScheduleScreen() {
   const displaySections = useMemo(() => {
     if (selectedDay === ALL_DAYS) return allSections;
     return allSections.filter((s) =>
-      s.data.some((entry) => entry.startTime.split('T')[0] === selectedDay)
+      s.data.some((entry) => festivalDay(entry.startTime) === selectedDay)
     );
   }, [allSections, selectedDay]);
 

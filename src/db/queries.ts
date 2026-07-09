@@ -38,7 +38,7 @@ export async function getShowsByDay(dateStr: string): Promise<Show[]> {
       s.end_time as endTime
     FROM shows s
     JOIN stages st ON s.stage_id = st.id
-    WHERE date(s.start_time) = ?
+    WHERE date(s.start_time, '-6 hours') = ?
     ORDER BY s.start_time ASC`,
     [dateStr]
   );
@@ -88,7 +88,7 @@ export async function removeFromSchedule(showId: number): Promise<void> {
 export async function getFestivalDays(): Promise<string[]> {
   const db = await getDatabase();
   const rows = await db.getAllAsync<{ day: string }>(
-    'SELECT DISTINCT date(start_time) as day FROM shows ORDER BY day'
+    "SELECT DISTINCT date(start_time, '-6 hours') as day FROM shows ORDER BY day"
   );
   return rows.map((r) => r.day);
 }

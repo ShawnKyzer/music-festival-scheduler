@@ -1,10 +1,11 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { View, FlatList, Text, StyleSheet, ActivityIndicator } from 'react-native';
 import { ShowCard } from '../../src/components/ShowCard';
-import { DaySelector } from '../../src/components/DaySelector';
+import { DaySelector, ALL_DAYS } from '../../src/components/DaySelector';
 import { Colors } from '../../src/constants/theme';
 import {
   getFestivalDays,
+  getAllShows,
   getShowsByDay,
   getScheduledShowIds,
   addToSchedule,
@@ -14,7 +15,7 @@ import type { Show } from '../../src/types';
 
 export default function LineupScreen() {
   const [days, setDays] = useState<string[]>([]);
-  const [selectedDay, setSelectedDay] = useState<string>('');
+  const [selectedDay, setSelectedDay] = useState<string>(ALL_DAYS);
   const [shows, setShows] = useState<Show[]>([]);
   const [scheduledIds, setScheduledIds] = useState<Set<number>>(new Set());
   const [loading, setLoading] = useState(true);
@@ -23,18 +24,14 @@ export default function LineupScreen() {
     (async () => {
       const festivalDays = await getFestivalDays();
       setDays(festivalDays);
-      if (festivalDays.length > 0) {
-        setSelectedDay(festivalDays[0]);
-      }
       setLoading(false);
     })();
   }, []);
 
   useEffect(() => {
-    if (!selectedDay) return;
     (async () => {
       const [dayShows, ids] = await Promise.all([
-        getShowsByDay(selectedDay),
+        selectedDay === ALL_DAYS ? getAllShows() : getShowsByDay(selectedDay),
         getScheduledShowIds(),
       ]);
       setShows(dayShows);
@@ -69,7 +66,7 @@ export default function LineupScreen() {
 
   return (
     <View style={styles.container}>
-      <DaySelector days={days} selectedDay={selectedDay} onSelect={setSelectedDay} />
+      <DaySelector days={days} selectedDay={selectedDay} onSelect={setSelectedDay} showAll />
       <FlatList
         data={shows}
         keyExtractor={(item) => item.id.toString()}
