@@ -30,7 +30,7 @@ export function DaySelector({ days, selectedDay, onSelect, showAll = false }: Da
         >
           <Text style={[styles.dayName, allActive && styles.labelActive]}>All</Text>
           <Text style={[styles.dayDate, allActive && styles.labelActive]}>
-            {days.length} days
+            {days.length} {days.length === 1 ? 'day' : 'days'}
           </Text>
         </Pressable>
       )}

@@ -11,8 +11,8 @@
  * late-night set (which all start by ~01:15 and end by 02:00) grouped with its
  * evening, while the earliest evening sets (~18:30) stay on their own day.
  *
- * Keep this constant in sync with the `'-6 hours'` modifier used by the
- * date(...) SQL in src/db/queries.ts.
+ * This constant is interpolated directly into the date(...) SQL modifier in
+ * src/db/queries.ts, so the JS grouping and the SQL day buckets can't drift.
  */
 export const FESTIVAL_DAY_OFFSET_HOURS = 6;
 

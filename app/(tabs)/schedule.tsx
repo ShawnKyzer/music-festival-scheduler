@@ -13,6 +13,7 @@ import { useFocusEffect } from 'expo-router';
 import { Colors } from '../../src/constants/theme';
 import { getSchedule, removeFromSchedule } from '../../src/db/queries';
 import { festivalDay } from '../../src/utils/festivalDay';
+import { ALL_DAYS } from '../../src/components/DaySelector';
 import { ShareableSchedule } from '../../src/components/ShareableSchedule';
 import { SharePreviewModal } from '../../src/components/SharePreviewModal';
 import { useShareSchedule } from '../../src/hooks/useShareSchedule';
@@ -54,8 +55,6 @@ function groupByDay(entries: ScheduleEntry[]): Section[] {
     data,
   }));
 }
-
-const ALL_DAYS = 'all';
 
 function formatDayPill(dateStr: string): { short: string; date: string } {
   const date = new Date(dateStr + 'T12:00:00');

@@ -1,5 +1,6 @@
 import { getDatabase } from './database';
 import type { Show, ScheduleEntry, Stage, ShareHistory } from '../types';
+import { FESTIVAL_DAY_OFFSET_HOURS } from '../utils/festivalDay';
 
 export async function getAllStages(): Promise<Stage[]> {
   const db = await getDatabase();
@@ -38,7 +39,7 @@ export async function getShowsByDay(dateStr: string): Promise<Show[]> {
       s.end_time as endTime
     FROM shows s
     JOIN stages st ON s.stage_id = st.id
-    WHERE date(s.start_time, '-6 hours') = ?
+    WHERE date(s.start_time, '-${FESTIVAL_DAY_OFFSET_HOURS} hours') = ?
     ORDER BY s.start_time ASC`,
     [dateStr]
   );
@@ -88,7 +89,7 @@ export async function removeFromSchedule(showId: number): Promise<void> {
 export async function getFestivalDays(): Promise<string[]> {
   const db = await getDatabase();
   const rows = await db.getAllAsync<{ day: string }>(
-    "SELECT DISTINCT date(start_time, '-6 hours') as day FROM shows ORDER BY day"
+    `SELECT DISTINCT date(start_time, '-${FESTIVAL_DAY_OFFSET_HOURS} hours') as day FROM shows ORDER BY day`
   );
   return rows.map((r) => r.day);
 }

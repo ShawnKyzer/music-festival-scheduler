@@ -29,14 +29,19 @@ export default function LineupScreen() {
   }, []);
 
   useEffect(() => {
+    let cancelled = false;
     (async () => {
       const [dayShows, ids] = await Promise.all([
         selectedDay === ALL_DAYS ? getAllShows() : getShowsByDay(selectedDay),
         getScheduledShowIds(),
       ]);
+      if (cancelled) return;
       setShows(dayShows);
       setScheduledIds(ids);
     })();
+    return () => {
+      cancelled = true;
+    };
   }, [selectedDay]);
 
   const handleToggle = useCallback(
