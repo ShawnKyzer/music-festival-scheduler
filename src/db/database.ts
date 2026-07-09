@@ -6,15 +6,23 @@ const DB_NAME = 'madcool2026v2.db';
 // matching migration(s) in runMigrations() so users keep their saved schedule.
 const SCHEMA_VERSION = 1;
 
-let db: SQLite.SQLiteDatabase | null = null;
+let dbPromise: Promise<SQLite.SQLiteDatabase> | null = null;
 
-export async function getDatabase(): Promise<SQLite.SQLiteDatabase> {
-  if (db) return db;
-  db = await SQLite.openDatabaseAsync(DB_NAME);
-  await db.execAsync('PRAGMA journal_mode = WAL;');
-  await db.execAsync('PRAGMA foreign_keys = ON;');
-  await initializeSchema(db);
-  return db;
+export function getDatabase(): Promise<SQLite.SQLiteDatabase> {
+  // Cache the in-flight promise, not just the resolved handle, so concurrent
+  // callers at startup share a single open + schema init. Otherwise each would
+  // see a null handle and race to openDatabaseAsync/CREATE TABLE, which crashes
+  // native prepareAsync with a NullPointerException.
+  if (!dbPromise) {
+    dbPromise = (async () => {
+      const db = await SQLite.openDatabaseAsync(DB_NAME);
+      await db.execAsync('PRAGMA journal_mode = WAL;');
+      await db.execAsync('PRAGMA foreign_keys = ON;');
+      await initializeSchema(db);
+      return db;
+    })();
+  }
+  return dbPromise;
 }
 
 async function initializeSchema(database: SQLite.SQLiteDatabase): Promise<void> {
