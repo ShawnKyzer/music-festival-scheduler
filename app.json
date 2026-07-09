@@ -1,8 +1,8 @@
 {
   "expo": {
-    "name": "Mad Cool 2026",
+    "name": "Festival Scheduler",
     "slug": "music-festival-scheduler",
-    "version": "1.0.4",
+    "version": "1.0.5",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
@@ -18,7 +18,7 @@
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
+        "backgroundColor": "#241857"
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
