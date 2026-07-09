@@ -2,36 +2,50 @@ import React from 'react';
 import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { Colors } from '../constants/theme';
 
+const ALL_DAYS = 'all';
+
 interface DaySelectorProps {
   days: string[];
   selectedDay: string;
   onSelect: (day: string) => void;
+  showAll?: boolean;
 }
 
-function formatDayLabel(dateStr: string): string {
+function formatDayLabel(dateStr: string): { name: string; date: string } {
   const date = new Date(dateStr + 'T12:00:00');
-  const dayName = date.toLocaleDateString([], { weekday: 'short' });
-  const monthDay = date.toLocaleDateString([], { month: 'short', day: 'numeric' });
-  return `${dayName}\n${monthDay}`;
+  return {
+    name: date.toLocaleDateString([], { weekday: 'short' }),
+    date: date.toLocaleDateString([], { month: 'short', day: 'numeric' }),
+  };
 }
 
-export function DaySelector({ days, selectedDay, onSelect }: DaySelectorProps) {
+export function DaySelector({ days, selectedDay, onSelect, showAll = false }: DaySelectorProps) {
+  const allActive = showAll && selectedDay === ALL_DAYS;
   return (
     <View style={styles.container}>
-      {days.map((day) => (
+      {showAll && (
         <Pressable
-          key={day}
-          style={[styles.pill, selectedDay === day && styles.pillActive]}
-          onPress={() => onSelect(day)}
+          style={[styles.pill, allActive && styles.pillActive]}
+          onPress={() => onSelect(ALL_DAYS)}
         >
-          <Text style={[styles.dayName, selectedDay === day && styles.labelActive]}>
-            {formatDayLabel(day).split('\n')[0]}
-          </Text>
-          <Text style={[styles.dayDate, selectedDay === day && styles.labelActive]}>
-            {formatDayLabel(day).split('\n')[1]}
-          </Text>
+          <Text style={[styles.dayName, allActive && styles.labelActive]}>All</Text>
+          <Text style={[styles.dayDate, allActive && styles.labelActive]}>{days.length} days</Text>
         </Pressable>
-      ))}
+      )}
+      {days.map((day) => {
+        const label = formatDayLabel(day);
+        const isActive = selectedDay === day;
+        return (
+          <Pressable
+            key={day}
+            style={[styles.pill, isActive && styles.pillActive]}
+            onPress={() => onSelect(day)}
+          >
+            <Text style={[styles.dayName, isActive && styles.labelActive]}>{label.name}</Text>
+            <Text style={[styles.dayDate, isActive && styles.labelActive]}>{label.date}</Text>
+          </Pressable>
+        );
+      })}
     </View>
   );
 }

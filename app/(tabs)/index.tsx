@@ -1,22 +1,32 @@
-import React, { useCallback, useEffect, useState } from 'react';
-import { View, FlatList, Text, TextInput, Pressable, StyleSheet, ActivityIndicator } from 'react-native';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import {
+  View,
+  FlatList,
+  Text,
+  TextInput,
+  Pressable,
+  StyleSheet,
+  ActivityIndicator,
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { ShowCard } from '../../src/components/ShowCard';
 import { DaySelector } from '../../src/components/DaySelector';
 import { Colors } from '../../src/constants/theme';
 import {
   getFestivalDays,
+  getAllShows,
   getShowsByDay,
-  searchShows,
   getScheduledShowIds,
   addToSchedule,
   removeFromSchedule,
 } from '../../src/db/queries';
 import type { Show } from '../../src/types';
 
+const ALL_DAYS = 'all';
+
 export default function LineupScreen() {
   const [days, setDays] = useState<string[]>([]);
-  const [selectedDay, setSelectedDay] = useState<string>('');
+  const [selectedDay, setSelectedDay] = useState<string>(ALL_DAYS);
   const [shows, setShows] = useState<Show[]>([]);
   const [scheduledIds, setScheduledIds] = useState<Set<number>>(new Set());
   const [searchQuery, setSearchQuery] = useState('');
@@ -26,27 +36,32 @@ export default function LineupScreen() {
     (async () => {
       const festivalDays = await getFestivalDays();
       setDays(festivalDays);
-      if (festivalDays.length > 0) {
-        setSelectedDay(festivalDays[0]);
-      }
       setLoading(false);
     })();
   }, []);
 
-  const normalizedQuery = searchQuery.trim().toLowerCase();
-  const isSearching = normalizedQuery.length > 0;
-
   useEffect(() => {
-    if (!selectedDay && !isSearching) return;
     (async () => {
       const [loadedShows, ids] = await Promise.all([
-        isSearching ? searchShows(normalizedQuery) : getShowsByDay(selectedDay),
+        selectedDay === ALL_DAYS ? getAllShows() : getShowsByDay(selectedDay),
         getScheduledShowIds(),
       ]);
       setShows(loadedShows);
       setScheduledIds(ids);
     })();
-  }, [selectedDay, normalizedQuery, isSearching]);
+  }, [selectedDay]);
+
+  const normalizedQuery = useMemo(
+    () => searchQuery.trim().toLowerCase(),
+    [searchQuery]
+  );
+
+  const filteredShows = useMemo(() => {
+    if (!normalizedQuery) return shows;
+    return shows.filter((show) => show.artist.toLowerCase().includes(normalizedQuery));
+  }, [shows, normalizedQuery]);
+
+  const isSearching = normalizedQuery.length > 0;
 
   const handleToggle = useCallback(
     async (showId: number) => {
@@ -75,9 +90,20 @@ export default function LineupScreen() {
 
   return (
     <View style={styles.container}>
-      <DaySelector days={days} selectedDay={selectedDay} onSelect={setSelectedDay} />
+      <DaySelector
+        days={days}
+        selectedDay={selectedDay}
+        onSelect={setSelectedDay}
+        showAll
+      />
+
       <View style={styles.searchContainer}>
-        <Ionicons name="search" size={18} color={Colors.textSecondary} style={styles.searchIcon} />
+        <Ionicons
+          name="search"
+          size={18}
+          color={Colors.textSecondary}
+          style={styles.searchIcon}
+        />
         <TextInput
           style={styles.searchInput}
           placeholder="Search artists"
@@ -90,12 +116,17 @@ export default function LineupScreen() {
         />
         {searchQuery.length > 0 && (
           <Pressable onPress={() => setSearchQuery('')} hitSlop={8}>
-            <Ionicons name="close-circle" size={18} color={Colors.textSecondary} />
+            <Ionicons
+              name="close-circle"
+              size={18}
+              color={Colors.textSecondary}
+            />
           </Pressable>
         )}
       </View>
+
       <FlatList
-        data={shows}
+        data={filteredShows}
         keyExtractor={(item) => item.id.toString()}
         renderItem={({ item }) => (
           <ShowCard
@@ -108,17 +139,34 @@ export default function LineupScreen() {
         ListEmptyComponent={
           isSearching ? (
             <View style={styles.emptyContainer}>
-              <Ionicons name="search-outline" size={48} color={Colors.textSecondary} />
+              <Ionicons
+                name="search-outline"
+                size={48}
+                color={Colors.textSecondary}
+              />
               <Text style={styles.emptyTitle}>No matching artists</Text>
               <Text style={styles.emptySubtitle}>
                 Try a different search term or clear the search.
               </Text>
-              <Pressable style={styles.clearSearchButton} onPress={() => setSearchQuery('')}>
+              <Pressable
+                style={styles.clearSearchButton}
+                onPress={() => setSearchQuery('')}
+              >
                 <Text style={styles.clearSearchButtonText}>Clear search</Text>
               </Pressable>
             </View>
           ) : (
-            <Text style={styles.emptyText}>No shows on this day.</Text>
+            <View style={styles.emptyContainer}>
+              <Ionicons
+                name="calendar-outline"
+                size={48}
+                color={Colors.textSecondary}
+              />
+              <Text style={styles.emptyTitle}>No shows found</Text>
+              <Text style={styles.emptySubtitle}>
+                Select a different day or check back later.
+              </Text>
+            </View>
           )
         }
       />
@@ -137,16 +185,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: Colors.background,
   },
-  list: {
-    paddingHorizontal: 16,
-    paddingBottom: 20,
-  },
-  emptyText: {
-    color: Colors.textSecondary,
-    textAlign: 'center',
-    marginTop: 40,
-    fontSize: 15,
-  },
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -156,6 +194,7 @@ const styles = StyleSheet.create({
     borderColor: Colors.border,
     marginHorizontal: 16,
     marginTop: 12,
+    marginBottom: 4,
     paddingHorizontal: 12,
     height: 44,
   },
@@ -167,6 +206,11 @@ const styles = StyleSheet.create({
     color: Colors.text,
     fontSize: 15,
     height: '100%',
+    padding: 0,
+  },
+  list: {
+    paddingHorizontal: 16,
+    paddingBottom: 20,
   },
   emptyContainer: {
     alignItems: 'center',
