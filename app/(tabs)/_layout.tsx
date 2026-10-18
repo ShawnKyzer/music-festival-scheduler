@@ -1,6 +1,7 @@
 import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../../src/constants/theme';
+import { FestivalSwitcher } from '../../src/components/FestivalSwitcher';
 
 export default function TabLayout() {
   return (
@@ -15,6 +16,7 @@ export default function TabLayout() {
         headerStyle: { backgroundColor: Colors.background },
         headerTintColor: Colors.text,
         headerTitleStyle: { fontWeight: '700' },
+        headerRight: () => <FestivalSwitcher />,
       }}
     >
       <Tabs.Screen

@@ -16,7 +16,7 @@ interface UseShareScheduleResult {
   cancelPreview: () => void;
 }
 
-export function useShareSchedule(): UseShareScheduleResult {
+export function useShareSchedule(festivalName: string): UseShareScheduleResult {
   const viewRef = useRef<View | null>(null);
   const [isCapturing, setIsCapturing] = useState(false);
   const [isSending, setIsSending] = useState(false);
@@ -73,7 +73,7 @@ export function useShareSchedule(): UseShareScheduleResult {
     try {
       await Sharing.shareAsync(previewUri, {
         mimeType: 'image/png',
-        dialogTitle: 'Share your Mad Cool schedule',
+        dialogTitle: `Share your ${festivalName} schedule`,
       });
 
       if (pendingRef.current) {
@@ -93,7 +93,7 @@ export function useShareSchedule(): UseShareScheduleResult {
       setPreviewUri(null);
       pendingRef.current = null;
     }
-  }, [previewUri, isSending]);
+  }, [previewUri, isSending, festivalName]);
 
   const cancelPreview = useCallback(() => {
     setPreviewVisible(false);

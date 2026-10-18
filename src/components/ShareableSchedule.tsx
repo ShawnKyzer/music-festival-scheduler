@@ -1,7 +1,8 @@
 import React, { forwardRef } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { Colors } from '../constants/theme';
-import type { ScheduleEntry } from '../types';
+import { formatDateRange, formatSetTime } from '../utils/format';
+import type { Festival, ScheduleEntry } from '../types';
 
 interface Section {
   title: string;
@@ -9,17 +10,13 @@ interface Section {
 }
 
 interface ShareableScheduleProps {
+  festival: Festival;
   sections: Section[];
   dayFilter?: string | null;
 }
 
-function formatTime(isoString: string): string {
-  const date = new Date(isoString);
-  return date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
-}
-
 export const ShareableSchedule = forwardRef<View, ShareableScheduleProps>(
-  function ShareableSchedule({ sections, dayFilter }, ref) {
+  function ShareableSchedule({ festival, sections, dayFilter }, ref) {
     const dayLabel = dayFilter
       ? new Date(dayFilter + 'T12:00:00').toLocaleDateString([], {
           weekday: 'long',
@@ -36,8 +33,10 @@ export const ShareableSchedule = forwardRef<View, ShareableScheduleProps>(
       >
         {/* Branded Header */}
         <View style={styles.header}>
-          <Text style={styles.headerTitle}>MAD COOL 2026</Text>
-          <Text style={styles.headerSubtitle}>July 8–11 · Madrid</Text>
+          <Text style={styles.headerTitle}>{festival.name.toUpperCase()}</Text>
+          <Text style={styles.headerSubtitle}>
+            {formatDateRange(festival.startDate, festival.endDate)} · {festival.city}
+          </Text>
           {dayLabel && (
             <Text style={styles.headerDay}>{dayLabel}</Text>
           )}
@@ -52,17 +51,23 @@ export const ShareableSchedule = forwardRef<View, ShareableScheduleProps>(
             {section.data.map((item) => (
               <View key={item.id} style={styles.showRow}>
                 <View style={styles.timeColumn}>
-                  <Text style={styles.timeText}>
-                    {formatTime(item.startTime)}
-                  </Text>
-                  <Text style={styles.timeDivider}>–</Text>
-                  <Text style={styles.timeText}>
-                    {formatTime(item.endTime)}
-                  </Text>
+                  {item.startTime ? (
+                    <>
+                      <Text style={styles.timeText}>
+                        {formatSetTime(item.startTime)}
+                      </Text>
+                      <Text style={styles.timeDivider}>–</Text>
+                      <Text style={styles.timeText}>
+                        {formatSetTime(item.endTime)}
+                      </Text>
+                    </>
+                  ) : (
+                    <Text style={styles.timeText}>TBA</Text>
+                  )}
                 </View>
                 <View style={styles.showDetails}>
                   <Text style={styles.artistName}>{item.artist}</Text>
-                  <Text style={styles.stageName}>{item.stageName}</Text>
+                  <Text style={styles.stageName}>{item.stageName ?? 'Stage TBA'}</Text>
                 </View>
               </View>
             ))}
@@ -73,7 +78,7 @@ export const ShareableSchedule = forwardRef<View, ShareableScheduleProps>(
         <View style={styles.footer}>
           <View style={styles.footerDivider} />
           <Text style={styles.footerText}>
-            Shared from Mad Cool 2026 App
+            Shared from Festival Scheduler
           </Text>
         </View>
       </View>

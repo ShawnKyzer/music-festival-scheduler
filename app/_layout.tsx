@@ -1,10 +1,11 @@
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { Colors } from '../src/constants/theme';
+import { FestivalProvider } from '../src/context/FestivalContext';
 
 export default function RootLayout() {
   return (
-    <>
+    <FestivalProvider>
       <StatusBar style="light" />
       <Stack
         screenOptions={{
@@ -16,6 +17,6 @@ export default function RootLayout() {
       >
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
       </Stack>
-    </>
+    </FestivalProvider>
   );
 }

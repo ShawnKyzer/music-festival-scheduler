@@ -1,10 +1,14 @@
 import * as SQLite from 'expo-sqlite';
+import PRIMAVERA_2027_SHOWS from './seeds/primavera2027';
 
+// The file name predates multi-festival support. It must not change: renaming
+// it would orphan every existing install's saved schedule.
 const DB_NAME = 'madcool2026v2.db';
 
-// Bump this whenever the seed schedule changes. Existing installs run the
-// matching migration(s) in runMigrations() so users keep their saved schedule.
-const SCHEMA_VERSION = 1;
+// Fresh installs are seeded with the baseline schema + Mad Cool data, which
+// already corresponds to this version; runMigrations() then brings them up to
+// date exactly like an existing install.
+const BASELINE_VERSION = 1;
 
 let dbPromise: Promise<SQLite.SQLiteDatabase> | null = null;
 
@@ -68,30 +72,31 @@ async function initializeSchema(database: SQLite.SQLiteDatabase): Promise<void> 
   );
 
   if (count && count.count === 0) {
-    // Fresh install: seed the current schedule and mark it up to date so the
-    // migrations below are skipped.
+    // Fresh install: seed the baseline data, which already includes the V1
+    // schedule corrections.
     await seedData(database);
-    await database.execAsync(`PRAGMA user_version = ${SCHEMA_VERSION};`);
-  } else {
-    // Existing install: apply any pending schedule corrections in place,
-    // preserving the user's saved shows (the schedule table references
-    // shows.id, which the migrations never change).
-    await runMigrations(database);
+    await database.execAsync(`PRAGMA user_version = ${BASELINE_VERSION};`);
   }
+
+  // Apply pending migrations in place, preserving the user's saved shows (the
+  // schedule table references shows.id, which the migrations never change).
+  await runMigrations(database);
 }
 
 async function runMigrations(database: SQLite.SQLiteDatabase): Promise<void> {
   const row = await database.getFirstAsync<{ user_version: number }>(
     'PRAGMA user_version;'
   );
-  let version = row?.user_version ?? 0;
+  const version = row?.user_version ?? 0;
 
   if (version < 1) {
     await migrateToV1(database);
-    version = 1;
+    await database.execAsync('PRAGMA user_version = 1;');
   }
 
-  await database.execAsync(`PRAGMA user_version = ${version};`);
+  if (version < 2) {
+    await migrateToV2(database);
+  }
 }
 
 // Migration 1: align set times and lineup with the official schedule published
@@ -156,6 +161,90 @@ async function migrateToV1(database: SQLite.SQLiteDatabase): Promise<void> {
       ('YULIE',                'Performing live at Mad Cool 2026', 5, '2026-07-12T00:25:00', '2026-07-12T01:15:00'),
       ('KSAL',                 'Performing live at Mad Cool 2026', 5, '2026-07-12T01:15:00', '2026-07-12T02:00:00');
   `);
+}
+
+// Migration 2: multi-festival support.
+// - Adds the festivals table; every existing stage and show belongs to Mad
+//   Cool 2026 (ids are preserved, so saved schedules keep pointing at them).
+// - Rebuilds stages/shows with a festival_id, and makes shows.stage_id and the
+//   set times nullable: lineups are announced long before the timetable.
+// - Adds Primavera Sound 2027 with its announced lineup (set times TBA).
+// SQLite can't relax NOT NULL in place, so this uses the documented
+// create-copy-drop-rename table rebuild, which requires foreign keys OFF
+// (they can't be toggled inside a transaction, hence the try/finally).
+async function migrateToV2(database: SQLite.SQLiteDatabase): Promise<void> {
+  await database.execAsync('PRAGMA foreign_keys = OFF;');
+  try {
+    await database.withTransactionAsync(async () => {
+      await database.execAsync(`
+        CREATE TABLE festivals (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          slug TEXT NOT NULL UNIQUE,
+          name TEXT NOT NULL,
+          venue TEXT NOT NULL,
+          city TEXT NOT NULL,
+          start_date TEXT NOT NULL,
+          end_date TEXT NOT NULL
+        );
+
+        INSERT INTO festivals (slug, name, venue, city, start_date, end_date) VALUES
+          ('mad-cool-2026', 'Mad Cool 2026', 'Iberdrola Music', 'Madrid', '2026-07-08', '2026-07-11');
+
+        CREATE TABLE stages_new (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          festival_id INTEGER NOT NULL,
+          name TEXT NOT NULL,
+          location TEXT NOT NULL,
+          FOREIGN KEY (festival_id) REFERENCES festivals(id)
+        );
+        INSERT INTO stages_new (id, festival_id, name, location)
+          SELECT id, (SELECT id FROM festivals WHERE slug = 'mad-cool-2026'), name, location
+          FROM stages;
+        DROP TABLE stages;
+        ALTER TABLE stages_new RENAME TO stages;
+
+        CREATE TABLE shows_new (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          festival_id INTEGER NOT NULL,
+          artist TEXT NOT NULL,
+          description TEXT NOT NULL DEFAULT '',
+          stage_id INTEGER,
+          start_time TEXT,
+          end_time TEXT,
+          FOREIGN KEY (festival_id) REFERENCES festivals(id),
+          FOREIGN KEY (stage_id) REFERENCES stages(id)
+        );
+        INSERT INTO shows_new (id, festival_id, artist, description, stage_id, start_time, end_time)
+          SELECT id, (SELECT id FROM festivals WHERE slug = 'mad-cool-2026'),
+                 artist, description, stage_id, start_time, end_time
+          FROM shows;
+        DROP TABLE shows;
+        ALTER TABLE shows_new RENAME TO shows;
+
+        CREATE INDEX idx_stages_festival_id ON stages(festival_id);
+        CREATE INDEX idx_shows_festival_id ON shows(festival_id);
+        CREATE INDEX idx_shows_start_time ON shows(start_time);
+        CREATE INDEX idx_shows_stage_id ON shows(stage_id);
+
+        INSERT INTO festivals (slug, name, venue, city, start_date, end_date) VALUES
+          ('primavera-sound-2027', 'Primavera Sound 2027', 'Parc del Fòrum', 'Barcelona', '2027-06-02', '2027-06-06');
+      `);
+
+      // Announced lineup scraped from primaverasound.com; stages and set times
+      // are published closer to the festival.
+      for (const show of PRIMAVERA_2027_SHOWS) {
+        await database.runAsync(
+          `INSERT INTO shows (festival_id, artist, description, stage_id, start_time, end_time)
+           SELECT id, ?, '', NULL, ?, ? FROM festivals WHERE slug = 'primavera-sound-2027'`,
+          [show.artist, show.startTime, show.endTime]
+        );
+      }
+
+      await database.execAsync('PRAGMA user_version = 2;');
+    });
+  } finally {
+    await database.execAsync('PRAGMA foreign_keys = ON;');
+  }
 }
 
 async function seedData(database: SQLite.SQLiteDatabase): Promise<void> {
