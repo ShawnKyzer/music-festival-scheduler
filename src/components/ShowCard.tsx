@@ -2,17 +2,13 @@ import React from 'react';
 import { View, Text, StyleSheet, Pressable, Linking } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../constants/theme';
+import { formatSetTime, formatVenue } from '../utils/format';
 import type { Show } from '../types';
 
 interface ShowCardProps {
   show: Show;
   isScheduled: boolean;
   onToggle: (showId: number) => void;
-}
-
-function formatTime(isoString: string): string {
-  const date = new Date(isoString);
-  return date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
 }
 
 function openYouTubeMusic(artist: string) {
@@ -24,18 +20,26 @@ export function ShowCard({ show, isScheduled, onToggle }: ShowCardProps) {
   return (
     <View style={styles.card}>
       <View style={styles.timeColumn}>
-        <Text style={styles.timeText}>{formatTime(show.startTime)}</Text>
-        <Text style={styles.timeDivider}>to</Text>
-        <Text style={styles.timeText}>{formatTime(show.endTime)}</Text>
+        {show.startTime ? (
+          <>
+            <Text style={styles.timeText}>{formatSetTime(show.startTime)}</Text>
+            <Text style={styles.timeDivider}>to</Text>
+            <Text style={styles.timeText}>{formatSetTime(show.endTime)}</Text>
+          </>
+        ) : (
+          <Text style={styles.timeText}>TBA</Text>
+        )}
       </View>
       <View style={styles.details}>
         <Text style={styles.artist}>{show.artist}</Text>
-        <Text style={styles.description} numberOfLines={2}>
-          {show.description}
-        </Text>
+        {show.description !== '' && (
+          <Text style={styles.description} numberOfLines={2}>
+            {show.description}
+          </Text>
+        )}
         <View style={styles.venueRow}>
           <Ionicons name="location-outline" size={14} color={Colors.textSecondary} />
-          <Text style={styles.venue}>{show.stageName} - {show.stageLocation}</Text>
+          <Text style={styles.venue}>{formatVenue(show.stageName, show.stageLocation)}</Text>
         </View>
         <Pressable
           style={styles.ytMusicButton}

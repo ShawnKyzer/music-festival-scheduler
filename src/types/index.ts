@@ -1,18 +1,31 @@
+export interface Festival {
+  id: number;
+  slug: string;
+  name: string;
+  venue: string;
+  city: string;
+  startDate: string; // YYYY-MM-DD, first festival day
+  endDate: string;   // YYYY-MM-DD, last festival day
+}
+
 export interface Stage {
   id: number;
+  festivalId: number;
   name: string;
   location: string;
 }
 
+// Lineups are often announced months before the timetable, so stage and set
+// times stay null until the festival publishes them.
 export interface Show {
   id: number;
   artist: string;
   description: string;
-  stageId: number;
-  stageName: string;
-  stageLocation: string;
-  startTime: string; // ISO 8601
-  endTime: string;   // ISO 8601
+  stageId: number | null;
+  stageName: string | null;
+  stageLocation: string | null;
+  startTime: string | null; // ISO 8601 wall-clock festival time
+  endTime: string | null;   // ISO 8601 wall-clock festival time
 }
 
 export interface ScheduleEntry {
@@ -20,10 +33,17 @@ export interface ScheduleEntry {
   showId: number;
   artist: string;
   description: string;
-  stageName: string;
-  stageLocation: string;
-  startTime: string;
-  endTime: string;
+  stageName: string | null;
+  stageLocation: string | null;
+  startTime: string | null;
+  endTime: string | null;
+}
+
+// A lineup row as scraped, before it is inserted into the database.
+export interface SeedShow {
+  artist: string;
+  startTime: string | null;
+  endTime: string | null;
 }
 
 export interface ShareHistory {

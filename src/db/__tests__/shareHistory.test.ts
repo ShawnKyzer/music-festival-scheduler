@@ -20,6 +20,7 @@ let nextId = 1;
 
 const mockDatabase = {
   execAsync: jest.fn(),
+  withTransactionAsync: jest.fn(async (task: () => Promise<void>) => task()),
   runAsync: jest.fn(async (sql: string, params: unknown[]) => {
     if (sql.includes('INSERT INTO share_history')) {
       store.push({

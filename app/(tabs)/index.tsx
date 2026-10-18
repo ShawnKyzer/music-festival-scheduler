@@ -3,6 +3,7 @@ import { View, FlatList, Text, StyleSheet, ActivityIndicator } from 'react-nativ
 import { ShowCard } from '../../src/components/ShowCard';
 import { DaySelector, ALL_DAYS } from '../../src/components/DaySelector';
 import { Colors } from '../../src/constants/theme';
+import { useFestival } from '../../src/context/FestivalContext';
 import {
   getFestivalDays,
   getAllShows,
@@ -14,6 +15,7 @@ import {
 import type { Show } from '../../src/types';
 
 export default function LineupScreen() {
+  const { festival } = useFestival();
   const [days, setDays] = useState<string[]>([]);
   const [selectedDay, setSelectedDay] = useState<string>(ALL_DAYS);
   const [shows, setShows] = useState<Show[]>([]);
@@ -21,19 +23,28 @@ export default function LineupScreen() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    setSelectedDay(ALL_DAYS);
     (async () => {
-      const festivalDays = await getFestivalDays();
+      const festivalDays = await getFestivalDays(festival.id);
+      if (cancelled) return;
       setDays(festivalDays);
       setLoading(false);
     })();
-  }, []);
+    return () => {
+      cancelled = true;
+    };
+  }, [festival.id]);
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
       const [dayShows, ids] = await Promise.all([
-        selectedDay === ALL_DAYS ? getAllShows() : getShowsByDay(selectedDay),
-        getScheduledShowIds(),
+        selectedDay === ALL_DAYS
+          ? getAllShows(festival.id)
+          : getShowsByDay(festival.id, selectedDay),
+        getScheduledShowIds(festival.id),
       ]);
       if (cancelled) return;
       setShows(dayShows);
@@ -42,7 +53,7 @@ export default function LineupScreen() {
     return () => {
       cancelled = true;
     };
-  }, [selectedDay]);
+  }, [festival.id, selectedDay]);
 
   const handleToggle = useCallback(
     async (showId: number) => {
@@ -71,7 +82,13 @@ export default function LineupScreen() {
 
   return (
     <View style={styles.container}>
-      <DaySelector days={days} selectedDay={selectedDay} onSelect={setSelectedDay} showAll />
+      {days.length > 0 ? (
+        <DaySelector days={days} selectedDay={selectedDay} onSelect={setSelectedDay} showAll />
+      ) : (
+        <Text style={styles.tbaNote}>
+          {shows.length} artists announced · stages and set times TBA
+        </Text>
+      )}
       <FlatList
         data={shows}
         keyExtractor={(item) => item.id.toString()}
@@ -111,5 +128,12 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 40,
     fontSize: 15,
+  },
+  tbaNote: {
+    color: Colors.textSecondary,
+    fontSize: 13,
+    fontWeight: '600',
+    textAlign: 'center',
+    paddingVertical: 12,
   },
 });

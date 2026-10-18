@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   View,
   SectionList,
@@ -11,8 +11,10 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from 'expo-router';
 import { Colors } from '../../src/constants/theme';
+import { useFestival } from '../../src/context/FestivalContext';
 import { getSchedule, removeFromSchedule } from '../../src/db/queries';
 import { festivalDay } from '../../src/utils/festivalDay';
+import { formatSetTime, formatVenue } from '../../src/utils/format';
 import { ALL_DAYS } from '../../src/components/DaySelector';
 import { ShareableSchedule } from '../../src/components/ShareableSchedule';
 import { SharePreviewModal } from '../../src/components/SharePreviewModal';
@@ -24,10 +26,7 @@ interface Section {
   data: ScheduleEntry[];
 }
 
-function formatTime(isoString: string): string {
-  const date = new Date(isoString);
-  return date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
-}
+const SET_TIME_TBA_TITLE = 'Set Time TBA';
 
 function openYouTubeMusic(artist: string) {
   const query = encodeURIComponent(artist);
@@ -43,17 +42,18 @@ function formatSectionTitle(dateStr: string): string {
   });
 }
 
+// Shows without a published set time (sorted last by the query) go into a
+// trailing "Set Time TBA" section.
 function groupByDay(entries: ScheduleEntry[]): Section[] {
   const map = new Map<string, ScheduleEntry[]>();
   for (const entry of entries) {
-    const day = festivalDay(entry.startTime);
-    if (!map.has(day)) map.set(day, []);
-    map.get(day)!.push(entry);
+    const title = entry.startTime
+      ? formatSectionTitle(festivalDay(entry.startTime))
+      : SET_TIME_TBA_TITLE;
+    if (!map.has(title)) map.set(title, []);
+    map.get(title)!.push(entry);
   }
-  return Array.from(map.entries()).map(([day, data]) => ({
-    title: formatSectionTitle(day),
-    data,
-  }));
+  return Array.from(map.entries()).map(([title, data]) => ({ title, data }));
 }
 
 function formatDayPill(dateStr: string): { short: string; date: string } {
@@ -65,6 +65,7 @@ function formatDayPill(dateStr: string): { short: string; date: string } {
 }
 
 export default function ScheduleScreen() {
+  const { festival } = useFestival();
   const [allSections, setAllSections] = useState<Section[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedDay, setSelectedDay] = useState<string>(ALL_DAYS);
@@ -77,14 +78,14 @@ export default function ScheduleScreen() {
     capturePreview,
     confirmShare,
     cancelPreview,
-  } = useShareSchedule();
+  } = useShareSchedule(festival.name);
 
-  // Extract unique days from schedule
+  // Extract unique days from schedule (shows with a published set time only)
   const scheduleDays = useMemo(() => {
     const daySet = new Set<string>();
     for (const section of allSections) {
       for (const entry of section.data) {
-        daySet.add(festivalDay(entry.startTime));
+        if (entry.startTime) daySet.add(festivalDay(entry.startTime));
       }
     }
     return Array.from(daySet).sort();
@@ -94,7 +95,7 @@ export default function ScheduleScreen() {
   const displaySections = useMemo(() => {
     if (selectedDay === ALL_DAYS) return allSections;
     return allSections.filter((s) =>
-      s.data.some((entry) => festivalDay(entry.startTime) === selectedDay)
+      s.data.some((entry) => entry.startTime && festivalDay(entry.startTime) === selectedDay)
     );
   }, [allSections, selectedDay]);
 
@@ -103,11 +104,15 @@ export default function ScheduleScreen() {
   const hasShows = totalShowCount > 0;
   const hasFilteredShows = displayShowCount > 0;
 
+  useEffect(() => {
+    setSelectedDay(ALL_DAYS);
+  }, [festival.id]);
+
   const loadSchedule = useCallback(async () => {
-    const entries = await getSchedule();
+    const entries = await getSchedule(festival.id);
     setAllSections(groupByDay(entries));
     setLoading(false);
-  }, []);
+  }, [festival.id]);
 
   useFocusEffect(
     useCallback(() => {
@@ -199,16 +204,22 @@ export default function ScheduleScreen() {
         renderItem={({ item }) => (
           <View style={styles.card}>
             <View style={styles.timeBadge}>
-              <Text style={styles.timeText}>{formatTime(item.startTime)}</Text>
-              <Text style={styles.timeDivider}>-</Text>
-              <Text style={styles.timeText}>{formatTime(item.endTime)}</Text>
+              {item.startTime ? (
+                <>
+                  <Text style={styles.timeText}>{formatSetTime(item.startTime)}</Text>
+                  <Text style={styles.timeDivider}>-</Text>
+                  <Text style={styles.timeText}>{formatSetTime(item.endTime)}</Text>
+                </>
+              ) : (
+                <Text style={styles.timeText}>TBA</Text>
+              )}
             </View>
             <View style={styles.details}>
               <Text style={styles.artist}>{item.artist}</Text>
               <View style={styles.venueRow}>
                 <Ionicons name="location" size={13} color={Colors.accent} />
                 <Text style={styles.venue}>
-                  {item.stageName} - {item.stageLocation}
+                  {formatVenue(item.stageName, item.stageLocation)}
                 </Text>
               </View>
               <Pressable
@@ -254,7 +265,12 @@ export default function ScheduleScreen() {
       {/* Off-screen shareable view for image capture */}
       {hasFilteredShows && (
         <View style={styles.offScreen} pointerEvents="none">
-          <ShareableSchedule ref={viewRef} sections={displaySections} dayFilter={dayFilter} />
+          <ShareableSchedule
+            ref={viewRef}
+            festival={festival}
+            sections={displaySections}
+            dayFilter={dayFilter}
+          />
         </View>
       )}
 
